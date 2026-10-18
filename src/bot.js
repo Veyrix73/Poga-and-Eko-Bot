@@ -27,6 +27,7 @@ if (!token || token === "replace_with_your_bot_token") {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 const COLORS = { purple: 0x9333ea, red: 0xef4444, green: 0x22c55e, blue: 0x3b82f6 };
+const AUTO_JOIN_ROLE_ID = "1561292551066230785";
 // Explicit allowlist for trusted bot operators; these IDs can use permission-gated commands.
 const AUTHORIZED_USER_IDS = new Set(["1113854211428450335", "1233409110049816620"]);
 const isAuthorizedOperator = userId => AUTHORIZED_USER_IDS.has(userId);
@@ -608,6 +609,21 @@ client.once("ready", () => {
 });
 
 client.on("guildMemberAdd", async member => {
+  // Assign the configured auto-role regardless of whether welcome messages are enabled.
+  try {
+    const role = await member.guild.roles.fetch(AUTO_JOIN_ROLE_ID);
+    if (!role) {
+      console.error("Auto-role assignment failed: role " + AUTO_JOIN_ROLE_ID + " was not found in " + member.guild.name + ".");
+    } else if (role.managed || role.id === member.guild.id) {
+      console.error("Auto-role assignment skipped: role " + AUTO_JOIN_ROLE_ID + " cannot be manually assigned.");
+    } else {
+      await member.roles.add(role, "Automatic role for new members");
+      console.log("Assigned auto-role " + role.name + " to " + member.user.tag + " in " + member.guild.name + ".");
+    }
+  } catch (error) {
+    console.error("Auto-role assignment failed for " + member.user.tag + " in " + member.guild.name + ":", error.message);
+  }
+
   const channelId = process.env.WELCOME_CHANNEL_ID;
   if (!channelId) return;
   try {
@@ -623,7 +639,7 @@ client.on("guildMemberAdd", async member => {
   } catch (error) {
     console.error("Welcome message failed:", error.message);
   }
-});
+}
 
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
