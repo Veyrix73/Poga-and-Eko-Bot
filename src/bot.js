@@ -6,18 +6,9 @@ const {
   EmbedBuilder,
   PermissionFlagsBits: P
 } = require("discord.js");
-const { randomUUID } = require("node:crypto");
 const commands = require("./command-definitions");
 const { addWarning, getWarnings, removeWarning } = require("./store");
-const { makeStreamAnnouncement } = require("./streams");
-const {
-  DEFAULT_TIMEZONE,
-  parseLocalDateTime,
-  scheduleStream,
-  listSchedules,
-  cancelSchedule,
-  startScheduler
-} = require("./scheduler");
+const { listSchedules, cancelSchedule, startScheduler } = require("./scheduler");
 
 const token = process.env.DISCORD_TOKEN;
 if (!token || token === "replace_with_your_bot_token") {
@@ -117,12 +108,11 @@ function commandHelp() {
     .setTitle("🐾 Poga & Eko Bot")
     .setDescription("Use Discord's **/** command menu. Ordinary chat messages are ignored; I do not answer or react to every message.")
     .addFields(
-      { name: "📺 Live & schedule", value: tick + "/startlive" + tick + " post streams now\n" + tick + "/schstream" + tick + " schedule a reminder\n" + tick + "/streams" + tick + " list reminders\n" + tick + "/cancelstream" + tick + " cancel one" },
+      { name: "📅 Existing schedules", value: tick + "/cancelstream" + tick + " cancel an existing reminder" },
       { name: "🛡️ Moderation", value: tick + "/ban" + tick + " · " + tick + "/kick" + tick + " · " + tick + "/warn" + tick + " · " + tick + "/warnings" + tick + " · " + tick + "/unwarn" + tick + "\n" + tick + "/timeout" + tick + " · " + tick + "/untimeout" + tick + " · " + tick + "/clear" + tick + "\n" + tick + "/slowmode" + tick + " · " + tick + "/lock" + tick + " · " + tick + "/unlock" + tick + "\n" + tick + "/nickname" + tick + " · " + tick + "/addrole" + tick + " · " + tick + "/removerole" + tick },
-      { name: "📣 Community", value: tick + "/poll" + tick + " · " + tick + "/suggest" + tick + " · " + tick + "/report" + tick + " · " + tick + "/announce" + tick },
+      { name: "📣 Community", value: tick + "/suggest" + tick + " · " + tick + "/report" + tick + " · " + tick + "/announce" + tick },
       { name: "ℹ️ Utilities", value: tick + "/ping" + tick + " · " + tick + "/about" + tick + " · " + tick + "/invite" + tick + " · " + tick + "/serverinfo" + tick + "\n" + tick + "/membercount" + tick + " · " + tick + "/userinfo" + tick + " · " + tick + "/avatar" + tick + "\n" + tick + "/roleinfo" + tick + " · " + tick + "/channelinfo" + tick },
-      { name: "🎲 Fun", value: tick + "/poga" + tick + " · " + tick + "/eko" + tick + " · " + tick + "/coinflip" + tick + " · " + tick + "/roll" + tick + "\n" + tick + "/choose" + tick + " · " + tick + "/8ball" + tick },
-      { name: "🌍 Local time", value: "Scheduled messages use Discord timestamps, so each member sees their own local time. Schedules can be entered using zones such as Europe/Riga or America/New_York." }
+      { name: "🎲 Fun", value: tick + "/coinflip" + tick + " · " + tick + "/roll" + tick + "\n" + tick + "/choose" + tick + " · " + tick + "/8ball" + tick },
     )
     .setFooter({ text: "Poga & Eko • Helpful, quiet, and community-first" });
   return { embeds: [embed] };
@@ -132,88 +122,8 @@ function makeInfoEmbed(title) {
   return new EmbedBuilder().setColor(COLORS.purple).setTitle(title).setTimestamp(new Date());
 }
 
-async function doStreamStart(interaction) {
-  const selection = interaction.options.getString("streamer", true);
-  const note = interaction.options.getString("note");
-  const notify = interaction.options.getBoolean("notify") || false;
-  if (!isTextChannel(interaction.channel)) return replyPrivate(interaction, "Use this command in a text channel.");
-  if (notify && !isAuthorizedOperator(interaction.user.id) && !interaction.memberPermissions.has(P.MentionEveryone)) {
-    return replyPrivate(interaction, "You need **Mention Everyone** permission to ping @here. Run /startlive again with notify turned off.");
-  }
-
-  const payload = makeStreamAnnouncement(selection, note, null);
-  payload.allowedMentions = notify ? { parse: ["everyone"] } : { parse: [] };
-  if (notify) payload.content = "@here";
-  await interaction.channel.send(payload);
-  return replyPrivate(interaction, "✅ Stream announcement posted in " + interaction.channel.toString() + ".");
-}
-
-async function doScheduleStream(interaction) {
-  if (!interaction.guild) return replyPrivate(interaction, "Use this command in a server.");
-  const selection = interaction.options.getString("streamer", true);
-  const date = interaction.options.getString("date", true);
-  const time = interaction.options.getString("time", true);
-  const timezone = interaction.options.getString("timezone") || DEFAULT_TIMEZONE;
-  const channel = interaction.options.getChannel("channel") || interaction.channel;
-  const note = interaction.options.getString("note");
-
-  if (!isTextChannel(channel)) return replyPrivate(interaction, "Choose a normal text or announcement channel.");
-  const localDateTime = parseLocalDateTime(date, time, timezone);
-  if (!localDateTime) {
-    return replyPrivate(interaction,
-      "I couldn't read that date, time, or timezone.\n\n" +
-      "Use YYYY-MM-DD for the date, HH:MM for the 24-hour time, and a valid IANA timezone such as Europe/Riga, America/New_York, or America/Los_Angeles.\n" +
-      "The selected zone is used only to interpret your input. The reminder is shown in each reader's own local time.");
-  }
-  if (localDateTime.toMillis() <= Date.now()) {
-    return replyPrivate(interaction, "That time is in the past. Choose a future date and time.");
-  }
-
-  const schedule = {
-    id: randomUUID().slice(0, 8),
-    guildId: interaction.guildId,
-    channelId: channel.id,
-    creatorId: interaction.user.id,
-    streamer: selection,
-    note: note || "",
-    inputTimezone: timezone,
-    inputDate: date,
-    inputTime: time,
-    scheduledFor: localDateTime.toUTC().toISO(),
-    createdAt: new Date().toISOString()
-  };
-  await scheduleStream(schedule);
-  const epoch = Math.floor(localDateTime.toSeconds());
-  return replyPrivate(interaction, {
-    embeds: [new EmbedBuilder()
-      .setColor(COLORS.green)
-      .setTitle("✅ Stream reminder scheduled")
-      .setDescription("**Schedule ID:** " + tickCode(schedule.id) + "\n**Channel:** " + channel.toString() +
-        "\n**Streams:** " + selection.toUpperCase() +
-        "\n**Time entered:** " + date + " " + time + " (" + timezone + ")" +
-        "\n**Your local time:** <t:" + epoch + ":F>\n**Relative time:** <t:" + epoch + ":R>" +
-        "\n\nDiscord automatically converts these timestamps for every member's timezone.")
-      .setFooter({ text: "Use /streams to check schedules, or /cancelstream to cancel one." })]
-  });
-}
-
 function tickCode(value) {
   return String.fromCharCode(96) + value + String.fromCharCode(96);
-}
-
-async function doListSchedules(interaction) {
-  if (!interaction.guild) return replyPrivate(interaction, "Use this command in a server.");
-  const schedules = await listSchedules(interaction.guildId);
-  if (!schedules.length) return replyPrivate(interaction, "There are no upcoming scheduled stream reminders in this server.");
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.purple)
-    .setTitle("📅 Scheduled streams")
-    .setDescription(schedules.slice(0, 15).map(item => {
-      const epoch = Math.floor(new Date(item.scheduledFor).getTime() / 1000);
-      return "**" + tickCode(item.id) + " · " + item.streamer.toUpperCase() + "** — <t:" + epoch + ":F> (<t:" + epoch + ":R>)\nChannel: <#" + item.channelId + ">";
-    }).join("\n\n"))
-    .setFooter({ text: "Times display in each reader's own timezone. Showing up to 15 schedules." });
-  return replyPrivate(interaction, { embeds: [embed] });
 }
 
 async function doCancelSchedule(interaction) {
@@ -327,12 +237,6 @@ async function runCommand(interaction) {
       return replyPrivate(interaction, { embeds: [embed] });
     }
 
-    case "poga":
-      return replyPrivate(interaction, { embeds: [new EmbedBuilder().setColor(COLORS.purple).setTitle("🐾 Poga time!").setDescription("Poga's stream links:\n[TikTok](https://www.tiktok.com/@veyrix7) · [Twitch](https://www.twitch.tv/veyrix___)\n\nMeow energy: **100%**").setTimestamp(new Date())] });
-
-    case "eko":
-      return replyPrivate(interaction, { embeds: [new EmbedBuilder().setColor(COLORS.blue).setTitle("🎮 Eko time!").setDescription("Eko's stream links:\n[TikTok](https://www.tiktok.com/@ekoeditsstuff) · [Twitch](https://www.twitch.tv/endereko)\n\nEdit energy: **100%**").setTimestamp(new Date())] });
-
     case "coinflip":
       return replyPrivate(interaction, "🪙 It landed on **" + (Math.random() < 0.5 ? "Heads" : "Tails") + "**.");
 
@@ -353,21 +257,6 @@ async function runCommand(interaction) {
         "Cannot predict that right now.", "Outlook is unclear.", "Probably not.", "Very unlikely."
       ];
       return replyPrivate(interaction, "🎱 **" + answers[Math.floor(Math.random() * answers.length)] + "**");
-    }
-
-    case "poll": {
-      if (!isTextChannel(interaction.channel)) return replyPrivate(interaction, "Use this command in a text channel.");
-      const question = options.getString("question", true);
-      const labels = [1, 2, 3, 4, 5].map(n => options.getString("option" + n)).filter(Boolean);
-      const icons = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
-      const embed = new EmbedBuilder().setColor(COLORS.purple).setTitle("📊 " + question)
-        .setDescription(labels.map((label, i) => icons[i] + " " + label).join("\n"))
-        .setFooter({ text: "Poll by " + interaction.user.tag + " • React to vote" }).setTimestamp(new Date());
-      const message = await interaction.channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
-      for (let i = 0; i < labels.length; i++) {
-        try { await message.react(icons[i]); } catch (error) { console.error("Poll reaction failed:", error.message); }
-      }
-      return replyPrivate(interaction, "📊 Poll posted in " + interaction.channel.toString() + ".");
     }
 
     case "suggest": {
@@ -402,15 +291,6 @@ async function runCommand(interaction) {
       await channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
       return replyPrivate(interaction, "✅ Your report was sent privately to the moderation team.");
     }
-
-    case "startlive":
-      return doStreamStart(interaction);
-
-    case "schstream":
-      return doScheduleStream(interaction);
-
-    case "streams":
-      return doListSchedules(interaction);
 
     case "cancelstream":
       return doCancelSchedule(interaction);
