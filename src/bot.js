@@ -49,6 +49,36 @@ function reasonOrDefault(reason, fallback) {
   return (reason || fallback).slice(0, 450);
 }
 
+const MAX_TIMEOUT_MS = 28 * 24 * 60 * 60 * 1000;
+
+function parseTimeoutDuration(value) {
+  const normalized = String(value || "").toLowerCase().replace(/\s+/g, "");
+  const match = normalized.match(/^(\d+)(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)$/);
+  if (!match) return null;
+
+  const amount = Number(match[1]);
+  const multipliers = {
+    s: 1000, sec: 1000, secs: 1000, second: 1000, seconds: 1000,
+    m: 60 * 1000, min: 60 * 1000, mins: 60 * 1000, minute: 60 * 1000, minutes: 60 * 1000,
+    h: 60 * 60 * 1000, hr: 60 * 60 * 1000, hrs: 60 * 60 * 1000, hour: 60 * 60 * 1000, hours: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000, day: 24 * 60 * 60 * 1000, days: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000, week: 7 * 24 * 60 * 60 * 1000, weeks: 7 * 24 * 60 * 60 * 1000
+  };
+  const milliseconds = amount * multipliers[match[2]];
+  if (!Number.isSafeInteger(milliseconds) || milliseconds < 1000 || milliseconds > MAX_TIMEOUT_MS) return null;
+
+  const units = [
+    [7 * 24 * 60 * 60 * 1000, "week"],
+    [24 * 60 * 60 * 1000, "day"],
+    [60 * 60 * 1000, "hour"],
+    [60 * 1000, "minute"],
+    [1000, "second"]
+  ];
+  const [unitMs, unitName] = units.find(([unit]) => milliseconds % unit === 0);
+  const count = milliseconds / unitMs;
+  return { milliseconds, label: count + " " + unitName + (count === 1 ? "" : "s") };
+}
+
 function isTextChannel(channel) {
   return Boolean(channel && channel.isTextBased() && typeof channel.send === "function");
 }
@@ -61,6 +91,7 @@ async function checkTarget(interaction, user, requireMember) {
   if (!interaction.guild || !user) return { ok: false, message: "Use this command in a server." };
   if (user.id === interaction.user.id) return { ok: false, message: "You can't use this command on yourself." };
   if (user.id === client.user.id) return { ok: false, message: "I can't apply this action to myself." };
+  if (user.id === interaction.guild.ownerId) return { ok: false, message: "I can't moderate the server owner." };
 
   const member = await fetchMember(interaction.guild, user.id);
   if (requireMember && !member) return { ok: false, message: "That user must be a member of this server." };
@@ -406,17 +437,51 @@ async function runCommand(interaction) {
 
     case "warn": {
       if (!hasPermission(interaction, P.ModerateMembers, "Moderate Members")) return;
-      const user = options.getUser("user", true);
+      const user = options.getUser("person", true);
       const target = await checkTarget(interaction, user, true);
       if (!target.ok) return replyPrivate(interaction, target.message);
+
+      const reason = reasonOrDefault(options.getString("reason", true).trim(), "No reason supplied");
+      const duration = parseTimeoutDuration(options.getString("time", true));
+      if (!duration) {
+        return replyPrivate(interaction,
+          "Invalid timeout duration. Use a value such as **30s**, **10m**, **2h**, **1d**, or **1w**. The maximum is **28 days**.");
+      }
+
       const record = await addWarning({
-        guildId: interaction.guildId, userId: user.id, username: user.tag,
-        moderatorId: interaction.user.id, reason: options.getString("reason", true)
+        guildId: interaction.guildId,
+        userId: user.id,
+        username: user.tag,
+        moderatorId: interaction.user.id,
+        reason,
+        duration: duration.label,
+        timeoutEndsAt: new Date(Date.now() + duration.milliseconds).toISOString()
       });
+
       try {
-        await user.send("⚠️ You received a warning in **" + interaction.guild.name + "**.\nReason: " + record.reason);
-      } catch {}
-      return replyPrivate(interaction, "⚠️ Warned **" + user.tag + "**. Case #" + record.caseId + " saved.");
+        await target.member.timeout(duration.milliseconds, reason + " | By " + interaction.user.tag);
+      } catch (error) {
+        await removeWarning(interaction.guildId, record.caseId).catch(rollbackError => {
+          console.error("Could not roll back failed warning case #" + record.caseId + ":", rollbackError.message);
+        });
+        throw error;
+      }
+
+      let dmSent = true;
+      try {
+        await user.send({
+          content: "⚠️ You received a warning in **" + interaction.guild.name + "** and have been timed out for **" +
+            duration.label + "**.\nReason: " + reason + "\nCase: #" + record.caseId,
+          allowedMentions: { parse: [] }
+        });
+      } catch {
+        dmSent = false;
+      }
+
+      return replyPrivate(interaction,
+        "⚠️ Warned and timed out **" + user.tag + "** for **" + duration.label + "**.\n" +
+        "Reason: " + reason + "\nCase #" + record.caseId + " saved.\n" +
+        (dmSent ? "DM sent with the reason." : "Timeout applied, but the DM could not be delivered (their DMs may be closed)."));
     }
 
     case "warnings": {
@@ -427,6 +492,7 @@ async function runCommand(interaction) {
       const embed = new EmbedBuilder().setColor(COLORS.red).setTitle("⚠️ Warnings for " + user.tag)
         .setDescription(rows.slice(-15).map(row =>
           "**Case #" + row.caseId + "** · <t:" + Math.floor(new Date(row.createdAt).getTime() / 1000) + ":d>\n" +
+          (row.duration ? "Timeout: " + row.duration + "\n" : "") +
           "Reason: " + row.reason + "\nModerator: <@" + row.moderatorId + ">"
         ).join("\n\n")).setFooter({ text: "Showing the latest 15 warnings." });
       return replyPrivate(interaction, { embeds: [embed] });
