@@ -119,7 +119,7 @@ You may also enter a time directly in New York, for example timezone: America/Ne
 - /clear, /slowmode, /lock, /unlock
 - /nickname, /addrole, /removerole
 
-Moderation commands have Discord permission requirements and check role hierarchy for the selected member/role. The bot's role and permissions must still be configured properly in your server. Warnings are stored in DATA_DIR/warnings.json.
+Moderation commands require the appropriate Discord permissions for regular members. Two trusted user IDs are allowlisted in the bot source and can use permission-gated commands: `1113854211428450335` and `1233409110049816620`. The allowlist also bypasses the invoking user's role-hierarchy check, but **the bot's own role must still be above the target member or role**, and Discord still enforces its own restrictions. Slash commands were made visible so the runtime allowlist can decide access; unauthorized users receive a permission error. Warnings are stored in DATA_DIR/warnings.json.
 
 ### Utilities and fun
 - /help, /ping, /about, /invite
