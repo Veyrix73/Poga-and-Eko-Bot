@@ -1,16 +1,12 @@
 # Poga & Eko Bot 🐾
 
-A Discord bot for Poga & Eko's community. It includes stream announcements and scheduling, timezone-aware timestamps, moderation, community tools, and useful server commands.
+A Discord bot for Poga & Eko's community, with moderation, community tools, and useful server commands.
 
 ## Features
 
-- **Stream announcements:** /startlive accepts Poga, Eko, or both and includes the correct TikTok and Twitch links.
-- **Stream scheduler:** /schstream saves a future reminder and posts it automatically.
-- **Per-viewer timezone:** scheduled messages use Discord timestamps. Discord renders those timestamps in every reader's own local timezone. Someone in Latvia sees Riga local time; someone in the USA sees their own timezone.
-- **Timezone input:** schedules default to Europe/Riga but accept any valid IANA timezone, such as America/New_York, America/Los_Angeles, or Asia/Tokyo.
 - **Moderation:** ban, kick, timed `/warn` with a reason DM, legacy warning lookup/removal, timeout and untimeout, clear messages, slowmode, lock/unlock, nickname changes, and role add/remove.
-- **Community:** reaction polls, suggestions, private reports sent to a configured staff channel, formatted announcements.
-- **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, 8-ball, Poga and Eko commands.
+- **Community:** suggestions, private reports sent to a configured staff channel, and formatted announcements.
+- **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, and 8-ball.
 - **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
 - **Optional welcome posts:** configure a welcome channel.
 - **Quiet in regular chat:** no message-content intent and no messageCreate handler. The bot does not answer every ordinary message or edit user messages.
@@ -88,28 +84,10 @@ npm run check
 
 The bot must stay running for scheduled reminders to be delivered. Use a host with persistent storage for DATA_DIR if you want scheduled-stream records to survive restarts or redeploys. Previously saved warning cases remain in warnings.json for the legacy /warnings and /unwarn commands; the updated /warn no longer writes to that file.
 
-## How local-time scheduling works
-
-Example: schedule a Poga stream for **20:00 in Latvia**:
-
-- Command: /schstream
-- streamer: poga
-- date: 2026-10-24
-- time: 20:00
-- timezone: Europe/Riga
-
-The bot stores the corresponding instant in UTC and posts a Discord timestamp. Anyone reading the same post gets their own local display automatically. Do **not** manually subtract a fixed number of hours for US members—daylight-saving changes and multiple US timezones make that unreliable.
-
-You may also enter a time directly in New York, for example timezone: America/New_York. The scheduler interprets the entered date/time in that zone, converts it to the correct instant, and Discord still displays that instant in each reader's timezone.
-
 ## Commands
 
-### Streams and community
-- /startlive — post Poga, Eko, or both stream links now. Optional note; optional @here ping for members who have Mention Everyone permission.
-- /schstream — schedule Poga, Eko, or both by date, time, timezone and destination channel.
-- /streams — list upcoming schedules with local-time display.
-- /cancelstream — cancel your own schedule; server moderators can cancel others.
-- /poll — reaction poll with up to five options.
+### Community
+- `/cancelstream` — legacy command to cancel an existing reminder if you know its ID; creating and listing stream reminders is no longer available.
 - /suggest — post a suggestion with 👍/👎 reactions.
 - /report — privately submit a member report to the configured reports channel.
 - /announce — post a formatted server announcement; optional @here requires permission.
@@ -128,11 +106,11 @@ Moderation commands require the appropriate Discord permissions for regular memb
 - /help, /ping, /about, /invite
 - /serverinfo, /membercount, /userinfo, /avatar
 - /roleinfo, /channelinfo
-- /poga, /eko, /coinflip, /roll, /choose, /8ball
+- /coinflip, /roll, /choose, /8ball
 
 ## Troubleshooting
 
 - If commands don't appear, run npm run deploy again and ensure the bot was invited with both bot and applications.commands scopes.
 - If a command fails, check the terminal output and make sure the bot role is high enough and its channel permissions are correct.
-- If reminders don't post, keep the process online and confirm the bot can view and send messages to the saved destination channel.
+- If an older scheduled reminder doesn't post, keep the process online and confirm the bot can view and send messages to its saved destination channel.
 - If the bot logs a disallowed-intent error, enable Server Members Intent in the Developer Portal.
