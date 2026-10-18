@@ -5,6 +5,7 @@
   "description": "Discord community, moderation, and stream scheduling bot for Poga and Eko.",
   "main": "src/bot.js",
   "scripts": {
+    "prestart": "npm run deploy",
     "start": "node src/bot.js",
     "deploy": "node scripts/deploy-commands.js",
     "check": "node --check src/bot.js && node --check src/command-definitions.js && node --check src/store.js && node --check src/streams.js && node --check src/scheduler.js && node --check scripts/deploy-commands.js"
