@@ -11,6 +11,7 @@ A Discord bot for Poga & Eko's community. It includes stream announcements and s
 - **Moderation:** ban, kick, timed `/warn` with a reason DM, legacy warning lookup/removal, timeout and untimeout, clear messages, slowmode, lock/unlock, nickname changes, and role add/remove.
 - **Community:** reaction polls, suggestions, private reports sent to a configured staff channel, formatted announcements.
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, 8-ball, Poga and Eko commands.
+- **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
 - **Optional welcome posts:** configure a welcome channel.
 - **Quiet in regular chat:** no message-content intent and no messageCreate handler. The bot does not answer every ordinary message or edit user messages.
 
@@ -69,7 +70,7 @@ In the Discord Developer Portal, open Bot → Privileged Gateway Intents and ena
 
 In OAuth2 → URL Generator, select bot and applications.commands. Grant only the permissions the bot needs for the channels and features you plan to use, such as View Channels, Send Messages, Embed Links, Read Message History, Add Reactions, Manage Messages, Kick Members, Ban Members, Moderate Members, Manage Channels, Manage Roles, and Manage Nicknames.
 
-Place the bot's role **above the roles it may need to moderate or assign**. For private reports, make the target channel accessible only to moderators and the bot.
+Place the bot's role **above the roles it may need to moderate or assign**, including role `1561292551066230785` so the automatic join role can be assigned. Grant the bot **Manage Roles**. For private reports, make the target channel accessible only to moderators and the bot.
 
 ### 6. Register commands and run
 
