@@ -448,30 +448,14 @@ async function runCommand(interaction) {
           "Invalid timeout duration. Use a value such as **30s**, **10m**, **2h**, **1d**, or **1w**. The maximum is **28 days**.");
       }
 
-      const record = await addWarning({
-        guildId: interaction.guildId,
-        userId: user.id,
-        username: user.tag,
-        moderatorId: interaction.user.id,
-        reason,
-        duration: duration.label,
-        timeoutEndsAt: new Date(Date.now() + duration.milliseconds).toISOString()
-      });
-
-      try {
-        await target.member.timeout(duration.milliseconds, reason + " | By " + interaction.user.tag);
-      } catch (error) {
-        await removeWarning(interaction.guildId, record.caseId).catch(rollbackError => {
-          console.error("Could not roll back failed warning case #" + record.caseId + ":", rollbackError.message);
-        });
-        throw error;
-      }
+      // /warn deliberately does not create a saved case or write to warnings.json.
+      await target.member.timeout(duration.milliseconds, reason + " | By " + interaction.user.tag);
 
       let dmSent = true;
       try {
         await user.send({
           content: "⚠️ You received a warning in **" + interaction.guild.name + "** and have been timed out for **" +
-            duration.label + "**.\nReason: " + reason + "\nCase: #" + record.caseId,
+            duration.label + "**.\nReason: " + reason,
           allowedMentions: { parse: [] }
         });
       } catch {
@@ -479,8 +463,8 @@ async function runCommand(interaction) {
       }
 
       return replyPrivate(interaction,
-        "⚠️ Warned and timed out **" + user.tag + "** for **" + duration.label + "**.\n" +
-        "Reason: " + reason + "\nCase #" + record.caseId + " saved.\n" +
+        "⚠️ Timed out **" + user.tag + "** for **" + duration.label + "**.\n" +
+        "Reason: " + reason + "\n" +
         (dmSent ? "DM sent with the reason." : "Timeout applied, but the DM could not be delivered (their DMs may be closed)."));
     }
 
