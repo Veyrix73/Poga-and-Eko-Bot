@@ -59,61 +59,46 @@ module.exports = [
   new SlashCommandBuilder().setName("cancelstream").setDescription("Cancel a scheduled stream reminder.")
     .addStringOption(o => o.setName("id").setDescription("Schedule ID shown by /streams.").setRequired(true)),
   new SlashCommandBuilder().setName("ban").setDescription("Ban a user from the server.")
-    .setDefaultMemberPermissions(P.BanMembers)
     .addUserOption(o => o.setName("user").setDescription("User to ban.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false))
     .addIntegerOption(o => o.setName("delete_seconds").setDescription("Delete recent message history (0–604800 seconds).").setMinValue(0).setMaxValue(604800).setRequired(false)),
   new SlashCommandBuilder().setName("kick").setDescription("Kick a member.")
-    .setDefaultMemberPermissions(P.KickMembers)
     .addUserOption(o => o.setName("user").setDescription("Member to kick.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false)),
   new SlashCommandBuilder().setName("warn").setDescription("Save a moderation warning for a member.")
-    .setDefaultMemberPermissions(P.ModerateMembers)
     .addUserOption(o => o.setName("user").setDescription("Member to warn.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(true)),
   new SlashCommandBuilder().setName("warnings").setDescription("View saved warnings for a member.")
-    .setDefaultMemberPermissions(P.ModerateMembers)
     .addUserOption(o => o.setName("user").setDescription("Member whose warnings to view.").setRequired(true)),
   new SlashCommandBuilder().setName("unwarn").setDescription("Remove a warning by its case ID.")
-    .setDefaultMemberPermissions(P.ModerateMembers)
     .addIntegerOption(o => o.setName("case_id").setDescription("Case ID shown by /warnings.").setMinValue(1).setRequired(true)),
   new SlashCommandBuilder().setName("timeout").setDescription("Temporarily mute a member.")
-    .setDefaultMemberPermissions(P.ModerateMembers)
     .addUserOption(o => o.setName("user").setDescription("Member to timeout.").setRequired(true))
     .addIntegerOption(o => o.setName("minutes").setDescription("Duration in minutes (1–40320).").setMinValue(1).setMaxValue(40320).setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false)),
   new SlashCommandBuilder().setName("untimeout").setDescription("Remove a member's timeout.")
-    .setDefaultMemberPermissions(P.ModerateMembers)
     .addUserOption(o => o.setName("user").setDescription("Member to untimeout.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false)),
   new SlashCommandBuilder().setName("clear").setDescription("Delete up to 100 recent messages.")
-    .setDefaultMemberPermissions(P.ManageMessages)
     .addIntegerOption(o => o.setName("amount").setDescription("Number of messages (1–100).").setMinValue(1).setMaxValue(100).setRequired(true)),
   new SlashCommandBuilder().setName("slowmode").setDescription("Change a channel's slowmode.")
-    .setDefaultMemberPermissions(P.ManageChannels)
     .addIntegerOption(o => o.setName("seconds").setDescription("Seconds between messages (0 disables).").setMinValue(0).setMaxValue(21600).setRequired(true))
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Target channel; defaults to here.")).setRequired(false)),
   new SlashCommandBuilder().setName("lock").setDescription("Lock a text channel for @everyone.")
-    .setDefaultMemberPermissions(P.ManageChannels)
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Target channel; defaults to here.")).setRequired(false))
     .addStringOption(o => o.setName("reason").setDescription("Optional reason.").setMaxLength(300).setRequired(false)),
   new SlashCommandBuilder().setName("unlock").setDescription("Unlock a text channel for @everyone.")
-    .setDefaultMemberPermissions(P.ManageChannels)
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Target channel; defaults to here.")).setRequired(false)),
   new SlashCommandBuilder().setName("nickname").setDescription("Change a nickname; use clear to reset it.")
-    .setDefaultMemberPermissions(P.ManageNicknames)
     .addUserOption(o => o.setName("user").setDescription("Member to rename.").setRequired(true))
     .addStringOption(o => o.setName("nickname").setDescription("Nickname, or clear.").setMaxLength(32).setRequired(true)),
   new SlashCommandBuilder().setName("addrole").setDescription("Give a member a role.")
-    .setDefaultMemberPermissions(P.ManageRoles)
     .addUserOption(o => o.setName("user").setDescription("Member.").setRequired(true))
     .addRoleOption(o => o.setName("role").setDescription("Role to give.").setRequired(true)),
   new SlashCommandBuilder().setName("removerole").setDescription("Remove a role from a member.")
-    .setDefaultMemberPermissions(P.ManageRoles)
     .addUserOption(o => o.setName("user").setDescription("Member.").setRequired(true))
     .addRoleOption(o => o.setName("role").setDescription("Role to remove.").setRequired(true)),
   new SlashCommandBuilder().setName("announce").setDescription("Post a formatted announcement.")
-    .setDefaultMemberPermissions(P.ManageGuild)
     .addStringOption(o => o.setName("title").setDescription("Title.").setMaxLength(200).setRequired(true))
     .addStringOption(o => o.setName("message").setDescription("Announcement text.").setMaxLength(3500).setRequired(true))
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Destination; defaults to here.")).setRequired(false))
