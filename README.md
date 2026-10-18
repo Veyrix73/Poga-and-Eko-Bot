@@ -74,9 +74,10 @@ Place the bot's role **above the roles it may need to moderate or assign**. For 
 ### 6. Register commands and run
 
 ~~~bash
-npm run deploy
 npm start
 ~~~
+
+The npm start command now registers the slash commands with Discord before starting the bot. This keeps changed command options (including the new /warn fields) synced automatically. To sync them manually, run npm run deploy.
 
 For a quick syntax check:
 
