@@ -1,11 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits: P, ChannelType } = require("discord.js");
 const textTypes = [ChannelType.GuildText, ChannelType.GuildAnnouncement];
 const textChannel = option => option.addChannelTypes(...textTypes);
-const choices = [
-  { name: "Poga", value: "poga" },
-  { name: "Eko", value: "eko" },
-  { name: "Both", value: "both" }
-];
 
 module.exports = [
   new SlashCommandBuilder().setName("help").setDescription("Show the command guide."),
@@ -22,8 +17,6 @@ module.exports = [
     .addRoleOption(o => o.setName("role").setDescription("Role to inspect.").setRequired(true)),
   new SlashCommandBuilder().setName("channelinfo").setDescription("Show information about a channel.")
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Channel to inspect.")).setRequired(false)),
-  new SlashCommandBuilder().setName("poga").setDescription("A little Poga-themed fun."),
-  new SlashCommandBuilder().setName("eko").setDescription("A little Eko-themed fun."),
   new SlashCommandBuilder().setName("coinflip").setDescription("Flip a coin."),
   new SlashCommandBuilder().setName("roll").setDescription("Roll a die.")
     .addIntegerOption(o => o.setName("sides").setDescription("Number of sides (2–1000).").setMinValue(2).setMaxValue(1000).setRequired(true)),
@@ -32,32 +25,13 @@ module.exports = [
     .addStringOption(o => o.setName("second").setDescription("Second option.").setMaxLength(100).setRequired(true)),
   new SlashCommandBuilder().setName("8ball").setDescription("Ask the magic 8-ball.")
     .addStringOption(o => o.setName("question").setDescription("Your question.").setMaxLength(300).setRequired(true)),
-  new SlashCommandBuilder().setName("poll").setDescription("Create a reaction-vote poll.")
-    .addStringOption(o => o.setName("question").setDescription("Poll question.").setMaxLength(250).setRequired(true))
-    .addStringOption(o => o.setName("option1").setDescription("First option.").setMaxLength(100).setRequired(true))
-    .addStringOption(o => o.setName("option2").setDescription("Second option.").setMaxLength(100).setRequired(true))
-    .addStringOption(o => o.setName("option3").setDescription("Third option (optional).").setMaxLength(100).setRequired(false))
-    .addStringOption(o => o.setName("option4").setDescription("Fourth option (optional).").setMaxLength(100).setRequired(false))
-    .addStringOption(o => o.setName("option5").setDescription("Fifth option (optional).").setMaxLength(100).setRequired(false)),
   new SlashCommandBuilder().setName("suggest").setDescription("Submit a community suggestion.")
     .addStringOption(o => o.setName("suggestion").setDescription("Your suggestion.").setMaxLength(1500).setRequired(true)),
   new SlashCommandBuilder().setName("report").setDescription("Privately report a member to moderators.")
     .addUserOption(o => o.setName("user").setDescription("Member being reported.").setRequired(true))
     .addStringOption(o => o.setName("details").setDescription("What happened?").setMaxLength(1500).setRequired(true)),
-  new SlashCommandBuilder().setName("startlive").setDescription("Post Poga/Eko stream links in this channel.")
-    .addStringOption(o => o.setName("streamer").setDescription("Which streams are live?").addChoices(...choices).setRequired(true))
-    .addStringOption(o => o.setName("note").setDescription("Optional stream message.").setMaxLength(300).setRequired(false))
-    .addBooleanOption(o => o.setName("notify").setDescription("Ping @here (requires Mention Everyone permission).").setRequired(false)),
-  new SlashCommandBuilder().setName("schstream").setDescription("Schedule a stream post; everyone sees it in their own timezone.")
-    .addStringOption(o => o.setName("streamer").setDescription("Whose streams?").addChoices(...choices).setRequired(true))
-    .addStringOption(o => o.setName("date").setDescription("Date in YYYY-MM-DD.").setRequired(true))
-    .addStringOption(o => o.setName("time").setDescription("Time in 24-hour HH:MM.").setRequired(true))
-    .addStringOption(o => o.setName("timezone").setDescription("IANA timezone, e.g. Europe/Riga or America/New_York.").setMaxLength(80).setRequired(false))
-    .addChannelOption(o => textChannel(o.setName("channel").setDescription("Post destination; defaults to this channel.")).setRequired(false))
-    .addStringOption(o => o.setName("note").setDescription("Optional stream note.").setMaxLength(300).setRequired(false)),
-  new SlashCommandBuilder().setName("streams").setDescription("List scheduled stream reminders."),
-  new SlashCommandBuilder().setName("cancelstream").setDescription("Cancel a scheduled stream reminder.")
-    .addStringOption(o => o.setName("id").setDescription("Schedule ID shown by /streams.").setRequired(true)),
+  new SlashCommandBuilder().setName("cancelstream").setDescription("Cancel an existing scheduled reminder.")
+    .addStringOption(o => o.setName("id").setDescription("ID of the existing reminder to cancel.").setRequired(true)),
   new SlashCommandBuilder().setName("ban").setDescription("Ban a user from the server.")
     .addUserOption(o => o.setName("user").setDescription("User to ban.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false))
