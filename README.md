@@ -8,7 +8,7 @@ A Discord bot for Poga & Eko's community. It includes stream announcements and s
 - **Stream scheduler:** /schstream saves a future reminder and posts it automatically.
 - **Per-viewer timezone:** scheduled messages use Discord timestamps. Discord renders those timestamps in every reader's own local timezone. Someone in Latvia sees Riga local time; someone in the USA sees their own timezone.
 - **Timezone input:** schedules default to Europe/Riga but accept any valid IANA timezone, such as America/New_York, America/Los_Angeles, or Asia/Tokyo.
-- **Moderation:** ban, kick, warnings, warning lookup/removal, timeout and untimeout, clear messages, slowmode, lock/unlock, nickname changes, and role add/remove. `/warn` saves a case, applies the requested timeout, and DMs the reason.
+- **Moderation:** ban, kick, timed `/warn` with a reason DM, legacy warning lookup/removal, timeout and untimeout, clear messages, slowmode, lock/unlock, nickname changes, and role add/remove.
 - **Community:** reaction polls, suggestions, private reports sent to a configured staff channel, formatted announcements.
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, 8-ball, Poga and Eko commands.
 - **Optional welcome posts:** configure a welcome channel.
@@ -85,7 +85,7 @@ For a quick syntax check:
 npm run check
 ~~~
 
-The bot must stay running for scheduled reminders to be delivered. Use a host with persistent storage for the DATA_DIR folder if you want warning and schedule records to survive restarts or redeploys. This JSON file store is suitable for a small community bot; it is not a distributed database.
+The bot must stay running for scheduled reminders to be delivered. Use a host with persistent storage for DATA_DIR if you want scheduled-stream records to survive restarts or redeploys. Previously saved warning cases remain in warnings.json for the legacy /warnings and /unwarn commands; the updated /warn no longer writes to that file.
 
 ## How local-time scheduling works
 
@@ -115,13 +115,13 @@ You may also enter a time directly in New York, for example timezone: America/Ne
 
 ### Moderation
 - /ban, /kick
-- `/warn person reason time` — saves a warning case, times out the member, and DMs them the reason. Example: `time: 10m`. Accepted units: `s`, `m`, `h`, `d`, `w` (also full words); maximum 28 days.
-- `/warnings`, `/unwarn`
+- `/warn person reason time` — applies a timeout and DMs the reason. It does **not** save a warning case. Example: `time: 10m`. Accepted units: `s`, `m`, `h`, `d`, `w` (also full words); maximum 28 days.
+- `/warnings`, `/unwarn` — still available for warning cases saved before this change.
 - /timeout, /untimeout
 - /clear, /slowmode, /lock, /unlock
 - /nickname, /addrole, /removerole
 
-Moderation commands require the appropriate Discord permissions for regular members. `/warn` requires Moderate Members permission and the bot needs the Discord **Moderate Members** permission, plus a role above the target member. Two trusted user IDs are allowlisted in the bot source and can use permission-gated commands: `1113854211428450335` and `1233409110049816620`. The allowlist also bypasses the invoking user's role-hierarchy check, but **the bot's own role must still be above the target member or role**, and Discord still enforces its own restrictions. Slash commands were made visible so the runtime allowlist can decide access; unauthorized users receive a permission error. Warnings are stored in DATA_DIR/warnings.json.
+Moderation commands require the appropriate Discord permissions for regular members. `/warn` requires Moderate Members permission and the bot needs the Discord **Moderate Members** permission, plus a role above the target member. Two trusted user IDs are allowlisted in the bot source and can use permission-gated commands: `1113854211428450335` and `1233409110049816620`. The allowlist also bypasses the invoking user's role-hierarchy check, but **the bot's own role must still be above the target member or role**, and Discord still enforces its own restrictions. Slash commands were made visible so the runtime allowlist can decide access; unauthorized users receive a permission error. Only older warning cases are stored in DATA_DIR/warnings.json.
 
 ### Utilities and fun
 - /help, /ping, /about, /invite
