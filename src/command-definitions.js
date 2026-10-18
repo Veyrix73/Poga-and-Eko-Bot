@@ -65,9 +65,10 @@ module.exports = [
   new SlashCommandBuilder().setName("kick").setDescription("Kick a member.")
     .addUserOption(o => o.setName("user").setDescription("Member to kick.").setRequired(true))
     .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(false)),
-  new SlashCommandBuilder().setName("warn").setDescription("Save a moderation warning for a member.")
-    .addUserOption(o => o.setName("user").setDescription("Member to warn.").setRequired(true))
-    .addStringOption(o => o.setName("reason").setDescription("Reason.").setMaxLength(500).setRequired(true)),
+  new SlashCommandBuilder().setName("warn").setDescription("Warn a member, DM the reason, and apply a timeout.")
+    .addUserOption(o => o.setName("person").setDescription("Member to warn and timeout.").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Why they are being warned.").setMaxLength(450).setRequired(true))
+    .addStringOption(o => o.setName("time").setDescription("Timeout duration: 30s, 10m, 2h, 1d, 1w; maximum 28d.").setMaxLength(30).setRequired(true)),
   new SlashCommandBuilder().setName("warnings").setDescription("View saved warnings for a member.")
     .addUserOption(o => o.setName("user").setDescription("Member whose warnings to view.").setRequired(true)),
   new SlashCommandBuilder().setName("unwarn").setDescription("Remove a warning by its case ID.")
