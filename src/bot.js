@@ -477,7 +477,7 @@ async function runCommand(interaction) {
       const channel = options.getChannel("channel") || interaction.channel;
       if (!channel.permissionOverwrites) return replyPrivate(interaction, "That channel doesn't support permission overwrites.");
       await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SendMessages: false },
-        { reason: reasonOrDefault(options.getString("reason"), "Channel locked by " + interaction.user.tag) });
+        reasonOrDefault(options.getString("reason"), "Channel locked by " + interaction.user.tag));
       return replyPrivate(interaction, "🔒 Locked " + channel.toString() + " for @everyone.");
     }
 
@@ -486,7 +486,7 @@ async function runCommand(interaction) {
       const channel = options.getChannel("channel") || interaction.channel;
       if (!channel.permissionOverwrites) return replyPrivate(interaction, "That channel doesn't support permission overwrites.");
       await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SendMessages: null },
-        { reason: "Channel unlocked by " + interaction.user.tag });
+        "Channel unlocked by " + interaction.user.tag);
       return replyPrivate(interaction, "🔓 Removed the @everyone send-message override in " + channel.toString() + ".");
     }
 
