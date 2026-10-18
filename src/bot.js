@@ -639,7 +639,7 @@ client.on("guildMemberAdd", async member => {
   } catch (error) {
     console.error("Welcome message failed:", error.message);
   }
-}
+});
 
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
