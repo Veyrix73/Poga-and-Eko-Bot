@@ -16,12 +16,41 @@ if (!token || token === "replace_with_your_bot_token") {
   process.exit(1);
 }
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const COLORS = { purple: 0x9333ea, red: 0xef4444, green: 0x22c55e, blue: 0x3b82f6 };
 const AUTO_JOIN_ROLE_ID = "1561292551066230785";
 // Explicit allowlist for trusted bot operators; these IDs can use permission-gated commands.
 const AUTHORIZED_USER_IDS = new Set(["1113854211428450335", "1233409110049816620"]);
 const isAuthorizedOperator = userId => AUTHORIZED_USER_IDS.has(userId);
+
+// Default English profanity list. Set BAD_WORDS in .env (comma-separated) to replace it.
+const DEFAULT_BAD_WORDS = [
+  "fuck", "fucked", "fucker", "fuckers", "fucking",
+  "shit", "shits", "shithead", "shitty", "bullshit",
+  "bitch", "bitches", "bitching",
+  "asshole", "assholes",
+  "bastard", "bastards",
+  "dick", "dicks",
+  "pussy", "pussies",
+  "cunt", "cunts",
+  "motherfucker", "motherfuckers",
+  "twat", "wanker"
+];
+const configuredBadWords = (process.env.BAD_WORDS || "")
+  .split(",")
+  .map(word => word.trim().toLowerCase())
+  .filter(Boolean);
+const BAD_WORDS = configuredBadWords.length ? configuredBadWords : DEFAULT_BAD_WORDS;
+
+function findBadWord(content) {
+  const normalized = String(content || "").normalize("NFKC").toLowerCase();
+  for (const word of BAD_WORDS) {
+    const escaped = word.replace(/[.*+?^$()|[\\]\\\\{}]/g, "\\const isAuthorizedOperator = userId => AUTHORIZED_USER_IDS.has(userId);");
+    const pattern = new RegExp("(^|[^\\\\p{L}\\\\p{N}])" + escaped + "(?=$|[^\\\\p{L}\\\\p{N}])", "u");
+    if (pattern.test(normalized)) return word;
+  }
+  return null;
+}
 
 async function replyPrivate(interaction, payload) {
   const body = typeof payload === "string" ? { content: payload, ephemeral: true } :
@@ -106,7 +135,7 @@ function commandHelp() {
   const embed = new EmbedBuilder()
     .setColor(COLORS.purple)
     .setTitle("🐾 Poga & Eko Bot")
-    .setDescription("Use Discord's **/** command menu. Ordinary chat messages are ignored; I do not answer or react to every message.")
+    .setDescription("Use Discord's **/** command menu. Normal chat stays quiet; AutoMod only acts on blocked words and user mentions.")
     .addFields(
       { name: "📅 Existing schedules", value: tick + "/cancelstream" + tick + " cancel an existing reminder" },
       { name: "🛡️ Moderation", value: tick + "/ban" + tick + " · " + tick + "/kick" + tick + " · " + tick + "/warn" + tick + " · " + tick + "/warnings" + tick + " · " + tick + "/unwarn" + tick + "\n" + tick + "/timeout" + tick + " · " + tick + "/untimeout" + tick + " · " + tick + "/clear" + tick + "\n" + tick + "/slowmode" + tick + " · " + tick + "/lock" + tick + " · " + tick + "/unlock" + tick + "\n" + tick + "/nickname" + tick + " · " + tick + "/addrole" + tick + " · " + tick + "/removerole" + tick },
@@ -153,7 +182,7 @@ async function runCommand(interaction) {
 
     case "about": {
       const embed = makeInfoEmbed("🐾 Poga & Eko Bot")
-        .setDescription("A community bot for stream announcements, scheduled reminders, moderation, and server tools.\n\n**Quiet by design:** I act on slash commands and member-join events. I do not reply to ordinary messages.")
+        .setDescription("A community bot for stream announcements, scheduled reminders, moderation, and server tools.\n\n**Quiet by design:** I act on slash commands, member-join events, and AutoMod violations. Normal chat gets no replies.")
         .addFields({ name: "Node.js", value: process.version, inline: true },
           { name: "Servers", value: String(client.guilds.cache.size), inline: true },
           { name: "Commands", value: String(commands.length), inline: true });
@@ -484,7 +513,7 @@ async function runCommand(interaction) {
 
 client.once("ready", () => {
   console.log("Logged in as " + client.user.tag + " across " + client.guilds.cache.size + " server(s).");
-  console.log("Registered command set includes " + commands.length + " commands. Ordinary messages are ignored.");
+  console.log("Registered " + commands.length + " commands. AutoMod enabled for blocked words and user mentions.");
   startScheduler(client);
 });
 
@@ -521,6 +550,55 @@ client.on("guildMemberAdd", async member => {
   }
 });
 
+client.on("messageCreate", async message => {
+  if (!message.guild || message.author.bot || !message.member) return;
+
+  // Keep moderation operators and moderators exempt from automatic sanctions.
+  if (isAuthorizedOperator(message.author.id) ||
+      message.member.permissions.has(P.Administrator) ||
+      message.member.permissions.has(P.ManageMessages) ||
+      message.member.permissions.has(P.ModerateMembers)) return;
+
+  const badWord = findBadWord(message.content);
+  const mentionsAnotherUser = message.mentions.users.some(user => user.id !== message.author.id);
+
+  // Profanity takes priority if a message matches both rules.
+  let timeoutMs;
+  let reason;
+  let notice;
+  if (badWord) {
+    timeoutMs = 24 * 60 * 60 * 1000;
+    reason = "AutoMod: blocked word detected (" + badWord + ")";
+    notice = "A blocked word was detected. You were timed out for 1 day.";
+  } else if (mentionsAnotherUser) {
+    timeoutMs = 10 * 60 * 1000;
+    reason = "AutoMod: mentioning another member is not allowed";
+    notice = "Mentioning another member triggered AutoMod. You were timed out for 10 minutes.";
+  } else {
+    return;
+  }
+
+  if (message.guild.ownerId === message.author.id) return;
+  const botMember = message.guild.members.me;
+  if (!botMember || !botMember.permissions.has(P.ModerateMembers) ||
+      botMember.roles.highest.comparePositionTo(message.member.roles.highest) <= 0) {
+    console.error("AutoMod could not timeout " + message.author.tag +
+      " in " + message.guild.name + ": check Moderate Members permission and role hierarchy.");
+    return;
+  }
+
+  try {
+    await message.member.timeout(timeoutMs, reason);
+    await message.reply({
+      content: "AutoMod: " + notice,
+      allowedMentions: { parse: [] }
+    }).catch(() => {});
+  } catch (error) {
+    console.error("AutoMod could not timeout " + message.author.tag +
+      " in " + message.guild.name + ":", error.message);
+  }
+});
+
 client.on("interactionCreate", async interaction => {
   if (!interaction.isChatInputCommand()) return;
   try {
@@ -534,7 +612,7 @@ client.on("interactionCreate", async interaction => {
   }
 });
 
-// Deliberately no messageCreate handler: ordinary chat is never auto-replied to or modified.
+// Ordinary chat is only acted on when one of the explicit AutoMod rules above is triggered.
 client.login(token).catch(error => {
   console.error("Discord login failed:", error.message);
   process.exit(1);
