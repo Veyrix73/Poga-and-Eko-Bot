@@ -45,8 +45,8 @@ const BAD_WORDS = configuredBadWords.length ? configuredBadWords : DEFAULT_BAD_W
 function findBadWord(content) {
   const normalized = String(content || "").normalize("NFKC").toLowerCase();
   for (const word of BAD_WORDS) {
-    const escaped = word.replace(/[.*+?^$()|[\\]\\\\{}]/g, "\\const isAuthorizedOperator = userId => AUTHORIZED_USER_IDS.has(userId);");
-    const pattern = new RegExp("(^|[^\\\\p{L}\\\\p{N}])" + escaped + "(?=$|[^\\\\p{L}\\\\p{N}])", "u");
+    const escaped = word.replace(/[.*+?^$()|[\\]\\\\{}]/g, char => "\\" + char);
+    const pattern = new RegExp("(^|[^\\p{L}\\p{N}])" + escaped + "(?=$|[^\\p{L}\\p{N}])", "u");
     if (pattern.test(normalized)) return word;
   }
   return null;
