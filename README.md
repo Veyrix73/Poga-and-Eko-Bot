@@ -5,6 +5,7 @@ A Discord bot for Poga & Eko's community, with moderation, community tools, and 
 ## Features
 
 - **Moderation:** ban, kick, timed `/warn` with a reason DM, legacy warning lookup/removal, timeout and untimeout, clear messages, slowmode, lock/unlock, nickname changes, and role add/remove.
+- **AutoMod:** detected blocked words trigger a 1-day timeout; mentioning another member triggers a 10-minute timeout. Moderators and trusted operators are exempt.
 - **Community:** suggestions, private reports sent to a configured staff channel, and formatted announcements.
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, and 8-ball.
 - **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
@@ -38,6 +39,7 @@ TIMEZONE=Europe/Riga
 WELCOME_CHANNEL_ID=
 SUGGESTIONS_CHANNEL_ID=
 REPORT_CHANNEL_ID=
+BAD_WORDS=
 DATA_DIR=data
 ~~~
 
@@ -54,13 +56,14 @@ copy .env.example .env
 - WELCOME_CHANNEL_ID: optional channel for joins.
 - SUGGESTIONS_CHANNEL_ID: optional suggestions channel. If blank, suggestions go into the channel where /suggest was used.
 - REPORT_CHANNEL_ID: strongly recommended private moderator-only channel. Reports are sent there; configure the channel's permissions yourself.
+- BAD_WORDS: optional comma-separated blocked-word list. If blank, the built-in English list is used; providing a list replaces the defaults.
 - DATA_DIR: where warning and scheduled-stream JSON data is saved.
 
 **Never commit or share .env or your bot token.** .env is ignored by Git. If a token is exposed, reset it in the Developer Portal.
 
-### 4. Enable the member intent
+### 4. Enable privileged intents
 
-In the Discord Developer Portal, open Bot → Privileged Gateway Intents and enable **Server Members Intent** for the join welcome feature and member lookups. Save your settings.
+In the Discord Developer Portal, open Bot → Privileged Gateway Intents and enable **Server Members Intent** for the join welcome feature/member lookups and **Message Content Intent** for AutoMod. Save your settings. The bot also requests the Guild Messages intent in code.
 
 ### 5. Invite the bot
 
