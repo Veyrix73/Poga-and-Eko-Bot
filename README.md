@@ -10,7 +10,7 @@ A Discord bot for Poga & Eko's community, with moderation, community tools, and 
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, and 8-ball.
 - **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
 - **Optional welcome posts:** configure a welcome channel.
-- **Quiet in regular chat:** no message-content intent and no messageCreate handler. The bot does not answer every ordinary message or edit user messages.
+- **Quiet in regular chat:** normal messages receive no response. AutoMod checks message content for blocked words and user mentions only.
 
 ## Setup
 
