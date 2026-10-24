@@ -574,14 +574,22 @@ function ordinalNumber(number) {
 function makeWelcomeEmbed(member) {
   const count = member.guild.memberCount || 1;
   return new EmbedBuilder()
-    .setColor(COLORS.purple)
+    .setColor(COLORS.blue)
     .setTitle("Welcome to the Server Poga and Eko")
-    .setDescription("Welcome, " + member.toString() + "!")
+    .setDescription("Welcome, " + member.toString() + "! We're glad you're here.")
     .setImage(member.user.displayAvatarURL({ extension: "png", size: 512 }))
-    .addFields({
-      name: "You're the " + ordinalNumber(count) + " account in our server!",
-      value: "We're glad you're here."
-    })
+    .addFields(
+      {
+        name: "SERVER MEMBER",
+        value: "You're the **" + ordinalNumber(count) + "** account in our server!",
+        inline: false
+      },
+      {
+        name: "COMMUNITY",
+        value: "Poga & Eko • Welcome center",
+        inline: false
+      }
+    )
     .setTimestamp(new Date())
     .setFooter({ text: member.guild.name + " • Member #" + count });
 }
