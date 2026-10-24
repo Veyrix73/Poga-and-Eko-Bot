@@ -105,6 +105,7 @@ async function createGiveaway(channel, details) {
     hostTag: details.hostTag,
     prize: details.prize,
     description: details.description || "",
+    notify: Boolean(details.notify),
     winnersCount: details.winnersCount,
     endAt: now + details.durationMinutes * 60 * 1000,
     createdAt: new Date(now).toISOString(),
@@ -116,9 +117,10 @@ async function createGiveaway(channel, details) {
   await mutateGiveaways(items => { items.push(giveaway); return giveaway; });
   try {
     const message = await channel.send({
+      content: giveaway.notify ? "@everyone" : undefined,
       embeds: [giveawayEmbed(giveaway)],
       components: [entryRow(giveaway.id)],
-      allowedMentions: { parse: [] }
+      allowedMentions: giveaway.notify ? { parse: ["everyone"] } : { parse: [] }
     });
     giveaway.messageId = message.id;
     await mutateGiveaways(items => {
