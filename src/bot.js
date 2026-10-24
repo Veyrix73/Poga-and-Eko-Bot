@@ -573,10 +573,13 @@ function ordinalNumber(number) {
 
 function makeWelcomeEmbed(member) {
   const count = member.guild.memberCount || 1;
+  const pogaAndEkoLogo = "https://i.ibb.co/TQb32F4/channels4-profile.jpg";
   return new EmbedBuilder()
     .setColor(COLORS.blue)
+    .setAuthor({ name: "Poga and Eko", iconURL: pogaAndEkoLogo })
     .setTitle("Welcome to the Server Poga and Eko")
     .setDescription("Welcome, " + member.toString() + "! We're glad you're here.")
+    .setThumbnail(pogaAndEkoLogo)
     .setImage(member.user.displayAvatarURL({ extension: "png", size: 512 }))
     .addFields(
       {
