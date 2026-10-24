@@ -79,7 +79,8 @@ module.exports = [
     .addIntegerOption(o => o.setName("duration").setDescription("Duration in minutes (1–10080).").setMinValue(1).setMaxValue(10080).setRequired(true))
     .addIntegerOption(o => o.setName("winners").setDescription("Number of winners (1–20; defaults to 1).").setMinValue(1).setMaxValue(20).setRequired(false))
     .addChannelOption(o => textChannel(o.setName("channel").setDescription("Where to post it; defaults to here.")).setRequired(false))
-    .addStringOption(o => o.setName("description").setDescription("Optional extra details.").setMaxLength(900).setRequired(false)),
+    .addStringOption(o => o.setName("description").setDescription("Optional extra details.").setMaxLength(900).setRequired(false))
+    .addBooleanOption(o => o.setName("notify").setDescription("Ping @everyone when the giveaway is posted.").setRequired(false)),
   new SlashCommandBuilder().setName("announce").setDescription("Post a formatted announcement.")
     .addStringOption(o => o.setName("title").setDescription("Title.").setMaxLength(200).setRequired(true))
     .addStringOption(o => o.setName("message").setDescription("Announcement text.").setMaxLength(3500).setRequired(true))
