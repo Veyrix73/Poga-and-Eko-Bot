@@ -9,6 +9,7 @@ const {
 const commands = require("./command-definitions");
 const { addWarning, getWarnings, removeWarning } = require("./store");
 const { listSchedules, cancelSchedule, startScheduler } = require("./scheduler");
+const { createGiveaway, enterGiveaway, startGiveawayScheduler } = require("./giveaways");
 
 const token = process.env.DISCORD_TOKEN;
 if (!token || token === "replace_with_your_bot_token") {
@@ -139,7 +140,7 @@ function commandHelp() {
     .addFields(
       { name: "📅 Existing schedules", value: tick + "/cancelstream" + tick + " cancel an existing reminder" },
       { name: "🛡️ Moderation", value: tick + "/ban" + tick + " · " + tick + "/kick" + tick + " · " + tick + "/warn" + tick + " · " + tick + "/warnings" + tick + " · " + tick + "/unwarn" + tick + "\n" + tick + "/timeout" + tick + " · " + tick + "/untimeout" + tick + " · " + tick + "/clear" + tick + "\n" + tick + "/slowmode" + tick + " · " + tick + "/lock" + tick + " · " + tick + "/unlock" + tick + "\n" + tick + "/nickname" + tick + " · " + tick + "/addrole" + tick + " · " + tick + "/removerole" + tick },
-      { name: "📣 Community", value: tick + "/suggest" + tick + " · " + tick + "/report" + tick + " · " + tick + "/announce" + tick },
+      { name: "📣 Community", value: tick + "/suggest" + tick + " · " + tick + "/report" + tick + " · " + tick + "/announce" + tick + " · " + tick + "/giveaway" + tick },
       { name: "ℹ️ Utilities", value: tick + "/ping" + tick + " · " + tick + "/about" + tick + " · " + tick + "/invite" + tick + " · " + tick + "/serverinfo" + tick + "\n" + tick + "/membercount" + tick + " · " + tick + "/userinfo" + tick + " · " + tick + "/avatar" + tick + "\n" + tick + "/roleinfo" + tick + " · " + tick + "/channelinfo" + tick },
       { name: "🎲 Fun", value: tick + "/coinflip" + tick + " · " + tick + "/roll" + tick + "\n" + tick + "/choose" + tick + " · " + tick + "/8ball" + tick },
     )
@@ -485,6 +486,39 @@ async function runCommand(interaction) {
       return replyPrivate(interaction, "✅ Removed " + role.toString() + " from **" + user.tag + "**.");
     }
 
+    case "giveaway": {
+      if (!hasPermission(interaction, P.ManageGuild, "Manage Server")) return;
+      if (!interaction.guild) return replyPrivate(interaction, "Use this command in a server.");
+
+      const prize = options.getString("prize", true).trim();
+      const durationMinutes = options.getInteger("duration", true);
+      const winnersCount = options.getInteger("winners") || 1;
+      const description = (options.getString("description") || "").trim();
+      const channel = options.getChannel("channel") || interaction.channel;
+      if (!prize) return replyPrivate(interaction, "Enter a prize name.");
+      if (!isTextChannel(channel)) return replyPrivate(interaction, "Choose a text channel for the giveaway.");
+
+      const botMember = interaction.guild.members.me;
+      const permissions = botMember ? channel.permissionsFor(botMember) : null;
+      if (!permissions || !permissions.has([P.ViewChannel, P.SendMessages, P.EmbedLinks])) {
+        return replyPrivate(interaction, "I need View Channel, Send Messages, and Embed Links permissions in " + channel.toString() + ".");
+      }
+
+      const giveaway = await createGiveaway(channel, {
+        guildId: interaction.guildId,
+        hostId: interaction.user.id,
+        hostTag: interaction.user.tag,
+        prize,
+        description,
+        winnersCount,
+        durationMinutes
+      });
+      const endUnix = Math.floor(giveaway.endAt / 1000);
+      return replyPrivate(interaction,
+        "✅ Giveaway posted in " + channel.toString() + " for **" + prize + "**.\n" +
+        "It ends <t:" + endUnix + ":R> with **" + winnersCount + "** winner" + (winnersCount === 1 ? "" : "s") + ".");
+    }
+
     case "announce": {
       if (!hasPermission(interaction, P.ManageGuild, "Manage Server")) return;
       const notify = options.getBoolean("notify") || false;
@@ -515,6 +549,7 @@ client.once("ready", () => {
   console.log("Logged in as " + client.user.tag + " across " + client.guilds.cache.size + " server(s).");
   console.log("Registered " + commands.length + " commands. AutoMod enabled for blocked words and user mentions.");
   startScheduler(client);
+  startGiveawayScheduler(client);
 });
 
 client.on("guildMemberAdd", async member => {
@@ -600,6 +635,21 @@ client.on("messageCreate", async message => {
 });
 
 client.on("interactionCreate", async interaction => {
+  if (interaction.isButton()) {
+    if (!interaction.customId.startsWith("giveaway:enter:")) return;
+    try {
+      if (interaction.user.bot) {
+        return interaction.reply({ content: "Bots can't enter giveaways.", ephemeral: true, allowedMentions: { parse: [] } });
+      }
+      const giveawayId = interaction.customId.slice("giveaway:enter:".length);
+      const result = await enterGiveaway(client, giveawayId, interaction.user.id);
+      return interaction.reply({ content: result.message, ephemeral: true, allowedMentions: { parse: [] } });
+    } catch (error) {
+      console.error("Giveaway entry failed:", error);
+      return interaction.reply({ content: "I couldn't save your entry. Please try again.", ephemeral: true, allowedMentions: { parse: [] } });
+    }
+  }
+
   if (!interaction.isChatInputCommand()) return;
   try {
     await runCommand(interaction);
