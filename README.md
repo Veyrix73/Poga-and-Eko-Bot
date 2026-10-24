@@ -8,6 +8,7 @@ A Discord bot for Poga & Eko's community, with moderation, community tools, and 
 - **AutoMod:** detected blocked words trigger a 1-day timeout; mentioning another member triggers a 10-minute timeout. Moderators and trusted operators are exempt.
 - **Community:** suggestions, private reports sent to a configured staff channel, and formatted announcements.
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, and 8-ball.
+- **Giveaways:** `/giveaway` posts a button-entry giveaway, tracks entries, and automatically selects unique winners when the timer ends. Active giveaways are saved in `DATA_DIR`.
 - **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
 - **Optional welcome posts:** configure a welcome channel.
 - **Quiet in regular chat:** normal messages receive no response. AutoMod checks message content for blocked words and user mentions only.
@@ -70,6 +71,10 @@ In the Discord Developer Portal, open Bot → Privileged Gateway Intents and ena
 In OAuth2 → URL Generator, select bot and applications.commands. Grant only the permissions the bot needs for the channels and features you plan to use, such as View Channels, Send Messages, Embed Links, Read Message History, Add Reactions, Manage Messages, Kick Members, Ban Members, Moderate Members, Manage Channels, Manage Roles, and Manage Nicknames.
 
 Place the bot's role **above the roles it may need to moderate or assign**, including role `1561292551066230785` so the automatic join role can be assigned. Grant the bot **Manage Roles**. For private reports, make the target channel accessible only to moderators and the bot.
+
+### Giveaways
+
+Members enter for free with the button on the giveaway post. Users with **Manage Server** can run `/giveaway` and set a prize, duration in minutes (1–10080), winner count (1–20), optional channel, and optional description. The bot closes the giveaway automatically and announces randomly selected, distinct winners. The bot needs View Channel, Send Messages, and Embed Links in the giveaway channel.
 
 ### 6. Register commands and run
 
