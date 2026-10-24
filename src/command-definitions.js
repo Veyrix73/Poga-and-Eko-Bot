@@ -73,6 +73,13 @@ module.exports = [
   new SlashCommandBuilder().setName("removerole").setDescription("Remove a role from a member.")
     .addUserOption(o => o.setName("user").setDescription("Member.").setRequired(true))
     .addRoleOption(o => o.setName("role").setDescription("Role to remove.").setRequired(true)),
+  new SlashCommandBuilder().setName("giveaway").setDescription("Start a button-entry giveaway.")
+    .setDefaultMemberPermissions(P.ManageGuild)
+    .addStringOption(o => o.setName("prize").setDescription("Prize to give away.").setMaxLength(200).setRequired(true))
+    .addIntegerOption(o => o.setName("duration").setDescription("Duration in minutes (1–10080).").setMinValue(1).setMaxValue(10080).setRequired(true))
+    .addIntegerOption(o => o.setName("winners").setDescription("Number of winners (1–20; defaults to 1).").setMinValue(1).setMaxValue(20).setRequired(false))
+    .addChannelOption(o => textChannel(o.setName("channel").setDescription("Where to post it; defaults to here.")).setRequired(false))
+    .addStringOption(o => o.setName("description").setDescription("Optional extra details.").setMaxLength(900).setRequired(false)),
   new SlashCommandBuilder().setName("announce").setDescription("Post a formatted announcement.")
     .addStringOption(o => o.setName("title").setDescription("Title.").setMaxLength(200).setRequired(true))
     .addStringOption(o => o.setName("message").setDescription("Announcement text.").setMaxLength(3500).setRequired(true))
