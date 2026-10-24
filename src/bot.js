@@ -494,14 +494,21 @@ async function runCommand(interaction) {
       const durationMinutes = options.getInteger("duration", true);
       const winnersCount = options.getInteger("winners") || 1;
       const description = (options.getString("description") || "").trim();
+      const notify = options.getBoolean("notify") || false;
       const channel = options.getChannel("channel") || interaction.channel;
       if (!prize) return replyPrivate(interaction, "Enter a prize name.");
       if (!isTextChannel(channel)) return replyPrivate(interaction, "Choose a text channel for the giveaway.");
 
+      if (notify && !isAuthorizedOperator(interaction.user.id) && !interaction.memberPermissions.has(P.MentionEveryone)) {
+        return replyPrivate(interaction, "You need **Mention Everyone** permission to notify the server.");
+      }
       const botMember = interaction.guild.members.me;
       const permissions = botMember ? channel.permissionsFor(botMember) : null;
       if (!permissions || !permissions.has([P.ViewChannel, P.SendMessages, P.EmbedLinks])) {
         return replyPrivate(interaction, "I need View Channel, Send Messages, and Embed Links permissions in " + channel.toString() + ".");
+      }
+      if (notify && !permissions.has(P.MentionEveryone)) {
+        return replyPrivate(interaction, "I need **Mention Everyone** permission in " + channel.toString() + " to ping the server.");
       }
 
       const giveaway = await createGiveaway(channel, {
@@ -510,12 +517,13 @@ async function runCommand(interaction) {
         hostTag: interaction.user.tag,
         prize,
         description,
+        notify,
         winnersCount,
         durationMinutes
       });
       const endUnix = Math.floor(giveaway.endAt / 1000);
       return replyPrivate(interaction,
-        "✅ Giveaway posted in " + channel.toString() + " for **" + prize + "**.\n" +
+        "✅ Giveaway posted in " + channel.toString() + (notify ? " with an **@everyone** notification" : "") + " for **" + prize + "**.\n" +
         "It ends <t:" + endUnix + ":R> with **" + winnersCount + "** winner" + (winnersCount === 1 ? "" : "s") + ".");
     }
 
@@ -552,8 +560,34 @@ client.once("ready", () => {
   startGiveawayScheduler(client);
 });
 
+function ordinalNumber(number) {
+  const remainder100 = number % 100;
+  if (remainder100 >= 11 && remainder100 <= 13) return number + "th";
+  switch (number % 10) {
+    case 1: return number + "st";
+    case 2: return number + "nd";
+    case 3: return number + "rd";
+    default: return number + "th";
+  }
+}
+
+function makeWelcomeEmbed(member) {
+  const count = member.guild.memberCount || 1;
+  return new EmbedBuilder()
+    .setColor(COLORS.purple)
+    .setTitle("Welcome to the Server Poga and Eko")
+    .setDescription("Welcome, " + member.toString() + "!")
+    .setImage(member.user.displayAvatarURL({ extension: "png", size: 512 }))
+    .addFields({
+      name: "You're the " + ordinalNumber(count) + " account in our server!",
+      value: "We're glad you're here."
+    })
+    .setTimestamp(new Date())
+    .setFooter({ text: member.guild.name + " • Member #" + count });
+}
+
 client.on("guildMemberAdd", async member => {
-  // Assign the configured auto-role regardless of whether welcome messages are enabled.
+  // Assign the configured auto-role regardless of whether welcome delivery succeeds.
   try {
     const role = await member.guild.roles.fetch(AUTO_JOIN_ROLE_ID);
     if (!role) {
@@ -568,20 +602,32 @@ client.on("guildMemberAdd", async member => {
     console.error("Auto-role assignment failed for " + member.user.tag + " in " + member.guild.name + ":", error.message);
   }
 
-  const channelId = process.env.WELCOME_CHANNEL_ID;
-  if (!channelId) return;
+  // Send the public welcome to the requested channel. This is independent of the DM below.
+  const welcomeChannelId = "1548645981393002496";
   try {
-    const channel = await client.channels.fetch(channelId);
-    if (!isTextChannel(channel)) return;
-    const embed = new EmbedBuilder().setColor(COLORS.purple)
-      .setTitle("🐾 Welcome, " + member.user.username + "!")
-      .setDescription("Welcome to **" + member.guild.name + "**, " + member.toString() + "! Check out the server and have fun with Poga & Eko.")
-      .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .setTimestamp(new Date())
-      .setFooter({ text: "Member #" + member.guild.memberCount });
-    await channel.send({ embeds: [embed], allowedMentions: { users: [member.id] } });
+    const channel = await client.channels.fetch(welcomeChannelId);
+    if (!isTextChannel(channel)) {
+      console.error("Welcome message skipped: channel " + welcomeChannelId + " is not a sendable text channel.");
+    } else if (channel.guildId !== member.guild.id) {
+      console.error("Welcome message skipped: channel " + welcomeChannelId + " belongs to a different server.");
+    } else {
+      await channel.send({
+        embeds: [makeWelcomeEmbed(member)],
+        allowedMentions: { users: [member.id] }
+      });
+    }
   } catch (error) {
-    console.error("Welcome message failed:", error.message);
+    console.error("Welcome channel message failed for " + member.user.tag + ":", error.message);
+  }
+
+  // Also DM the new member; this may fail if they have DMs disabled.
+  try {
+    await member.send({
+      embeds: [makeWelcomeEmbed(member)],
+      allowedMentions: { users: [member.id] }
+    });
+  } catch (error) {
+    console.error("Welcome DM could not be delivered to " + member.user.tag + ":", error.message);
   }
 });
 
