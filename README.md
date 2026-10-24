@@ -9,8 +9,8 @@ A Discord bot for Poga & Eko's community, with moderation, community tools, and 
 - **Community:** suggestions, private reports sent to a configured staff channel, and formatted announcements.
 - **Utilities and fun:** help, ping, server/member/user/role/channel details, avatar, invite, coin flip, dice roll, choice picker, and 8-ball.
 - **Giveaways:** `/giveaway` posts a button-entry giveaway, tracks entries, and automatically selects unique winners when the timer ends. Active giveaways are saved in `DATA_DIR`.
-- **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role. This works even when welcome messages are disabled.
-- **Optional welcome posts:** configure a welcome channel.
+- **Automatic join role:** every new member is automatically given role ID `1561292551066230785`. The bot needs Manage Roles, and its highest role must sit above that role.
+- **Welcome messages:** new members receive a welcome embed in channel `1548645981393002496` and a DM. The embed shows their profile picture and server account number. The bot needs permission to view and send messages in the welcome channel; DMs can fail if a member blocks them.
 - **Quiet in regular chat:** normal messages receive no response. AutoMod checks message content for blocked words and user mentions only.
 
 ## Setup
@@ -37,7 +37,6 @@ DISCORD_TOKEN=your_real_bot_token
 DISCORD_CLIENT_ID=your_application_id
 DISCORD_GUILD_ID=your_test_server_id
 TIMEZONE=Europe/Riga
-WELCOME_CHANNEL_ID=
 SUGGESTIONS_CHANNEL_ID=
 REPORT_CHANNEL_ID=
 BAD_WORDS=
@@ -54,7 +53,6 @@ copy .env.example .env
 - DISCORD_CLIENT_ID: Developer Portal → General Information → Application ID.
 - DISCORD_GUILD_ID: optional server ID for quick testing. Leave blank to register commands globally.
 - TIMEZONE: the default timezone for date/time inputs. It does not override viewer-local time display.
-- WELCOME_CHANNEL_ID: optional channel for joins.
 - SUGGESTIONS_CHANNEL_ID: optional suggestions channel. If blank, suggestions go into the channel where /suggest was used.
 - REPORT_CHANNEL_ID: strongly recommended private moderator-only channel. Reports are sent there; configure the channel's permissions yourself.
 - BAD_WORDS: optional comma-separated blocked-word list. If blank, the built-in English list is used; providing a list replaces the defaults.
@@ -74,7 +72,7 @@ Place the bot's role **above the roles it may need to moderate or assign**, incl
 
 ### Giveaways
 
-Members enter for free with the button on the giveaway post. Users with **Manage Server** can run `/giveaway` and set a prize, duration in minutes (1–10080), winner count (1–20), optional channel, and optional description. The bot closes the giveaway automatically and announces randomly selected, distinct winners. The bot needs View Channel, Send Messages, and Embed Links in the giveaway channel.
+Members enter for free with the button on the giveaway post. Users with **Manage Server** can run `/giveaway` and set a prize, duration in minutes (1–10080), winner count (1–20), optional channel, description, and optional `notify` setting. Set `notify: true` to ping `@everyone` in the giveaway channel; the creator and bot need **Mention Everyone** permission. To avoid unsolicited mass messaging, the bot does not DM every server member. The bot closes the giveaway automatically and announces randomly selected, distinct winners.
 
 ### 6. Register commands and run
 
